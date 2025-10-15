@@ -1,15 +1,18 @@
 import datetime
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 
 db = SQLAlchemy()
 
 
-class Admin(db.Model):
+class Admin(db.Model , UserMixin):
     __tablename__ = "admin"
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     name = db.Column(db.String , nullable = False)
     email = db.Column(db.String, unique = True , nullable = False)
     password = db.Column(db.String, nullable = False)
+    def get_id(self):
+        return self.email
 
 
 class Department(db.Model):
@@ -21,7 +24,7 @@ class Department(db.Model):
     doctors = db.relationship("Doctor", backref = "department")
 
 
-class Patient(db.Model):
+class Patient(db.Model , UserMixin):
     __tablename__ = "patient"
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     name = db.Column(db.String , nullable = False)
@@ -29,9 +32,11 @@ class Patient(db.Model):
     password = db.Column(db.String, nullable = False)
     phone = db.Column(db.String, nullable =False)
     created_appointments = db.relationship("Appointment", backref = "patient")
+    def get_id(self):
+        return self.email
 
 
-class Doctor(db.Model):
+class Doctor(db.Model , UserMixin):
     __tablename__ = "doctor"
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     name = db.Column(db.String , nullable = False)
@@ -40,6 +45,8 @@ class Doctor(db.Model):
     phone = db.Column(db.String, nullable = False)
     dept_id = db.Column(db.Integer, db.ForeignKey ("department.id"), nullable = False)
     appointments = db.relationship("Appointment", backref = "doctor")
+    def get_id(self):
+        return self.email
 
 
 class Appointment(db.Model):
