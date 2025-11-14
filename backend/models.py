@@ -20,8 +20,9 @@ class Department(db.Model):
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     name = db.Column(db.String , nullable = False, unique = True)
     description = db.Column(db.String , nullable = False)
-    doc_registered = db.Column(db.String , nullable = False)
+    doc_registered = db.Column(db.Integer)
     doctors = db.relationship("Doctor", backref = "department")
+    appointments = db.relationship("Appointment", backref = "department")
 
 
 class Patient(db.Model , UserMixin):
@@ -31,6 +32,7 @@ class Patient(db.Model , UserMixin):
     email = db.Column(db.String, unique = True , nullable = False)
     password = db.Column(db.String, nullable = False)
     phone = db.Column(db.String, nullable =False)
+    status = db.Column(db.String, nullable =False, default='Active')
     created_appointments = db.relationship("Appointment", backref = "patient")
     def get_id(self):
         return self.email
@@ -43,6 +45,7 @@ class Doctor(db.Model , UserMixin):
     email = db.Column(db.String, unique = True , nullable = False)
     password = db.Column(db.String, nullable = False)
     phone = db.Column(db.String, nullable = False)
+    status = db.Column(db.String, nullable =False, default='Active')
     dept_id = db.Column(db.Integer, db.ForeignKey ("department.id"), nullable = False)
     appointments = db.relationship("Appointment", backref = "doctor")
     def get_id(self):
@@ -54,9 +57,10 @@ class Appointment(db.Model):
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     pat_id = db.Column(db.Integer, db.ForeignKey ("patient.id"), nullable = False)
     doc_id = db.Column(db.Integer, db.ForeignKey ("doctor.id"), nullable = False)
+    dept_id = db.Column(db.Integer, db.ForeignKey ("department.id"), nullable = False)
     date = db.Column(db.Date, default=datetime.date.today, nullable = False)
-    time = db.Column(db.Time, default=datetime.datetime.now().time, nullable = False)
-    status = db.Column(db.String, nullable = False)
+    time = db.Column(db.Time, default=lambda: datetime.datetime.now().time(), nullable = False)
+    status = db.Column(db.String, nullable = False, default='Booked')
     treatments = db.relationship("Treatment", backref = "appointment")
 
 

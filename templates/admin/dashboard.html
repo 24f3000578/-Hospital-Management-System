@@ -8,12 +8,891 @@
     <title>Document</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 </head>
 
 <body>
-    <h5>Welcome to admin dashboard.</h5>
-    Name : {{current_admin.name}}
-    Email : {{current_admin.email}}
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand fs-5" href="#">HMS360</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto fs-5">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Search</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Stats</a>
+                    </li>
+                </ul>
+                
+                <div class="dropdown me-3 ms-2">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person fs-3"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">Logout</a></li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% set messages = get_flashed_messages() %}
+    {% for msg in messages %}
+    <div class="alert alert-warning alert-dismissible ms-5 me-5 mt-2 fade show" role="alert">
+        {{msg}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+
+    <div class="card mt-5 ms-5 me-5">
+        <div class="card-header">
+            <div class="d-flex d-inline">
+                <h5>Departments</h5>
+    
+                <button type="button" class="btn btn-primary ms-auto" data-bs-toggle="modal"
+                    data-bs-target="#Department-create-form">
+                    + Create
+                </button>
+    
+                
+                <div class="modal fade" id="Department-create-form" tabindex="-1" aria-labelledby="exampleModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="exampleModalLabel">Create Department</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="/department?task=create" method="POST">
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="floatingInput" name="dept_name" required>
+                                        <label for="floatingInput">Department Name</label>
+                                    </div>
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="floatingInput" name="dept_description" required>
+                                        <label for="floatingInput">Department Description</label>
+                                    </div>
+                                    
+    
+    
+                                    <button class="btn btn-primary">Create</button>
+                                </form>
+                            </div>
+    
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for dept in all_depts %}
+                <div class="col-3 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <p>{{dept.name}}</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#view-department-{{dept.id}}">View</button>
+                            <div class="modal fade" id="view-department-{{dept.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h1 class="modal-title fs-5" id="exampleModalLabel">{{dept.name}} details</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {% if dept.doctors %}
+                                            <div class="row">
+                                                {% for doctor in dept.doctors %}
+                                                    <div class="col-2 mb-2">
+                                                        <div class="rounded border border-secondary d-flex align-items-center justify-content-center">
+                                                            {{doctor.name}}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% else %}
+                                                <div class="text-center">
+                                                    No doctors assigned to this department.
+                                                </div>
+                                            {% endif %}
+                                           
+                                        </div>
+                            
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+
+
+                            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#edit-department-{{dept.id}}">Edit</button>
+                            <div class="modal fade" id="edit-department-{{dept.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Department</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="/department?task=edit&dept_id={{dept.id}}" method="POST">
+                                                <div class="form-floating mb-3">
+                                                    <input type="text" class="form-control" id="floatingInput" value="{{dept.name}}" name="dept_name">
+                                                    <label for="floatingInput">Department Name</label>
+                                                </div>
+                                                <div class="form-floating mb-3">
+                                                    <input type="text" class="form-control" id="floatingInput" value="{{dept.description}}" name="dept_description">
+                                                    <label for="floatingInput">Department Description</label>
+                                                </div>
+                            
+                            
+                            
+                                                <button class="btn btn-primary">Edit</button>
+                                            </form>
+                                        </div>
+                            
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+    
+    
+        </div>
+    </div>
+    
+
+
+    <!-- Doctors -->
+    <div class="card mt-4 ms-5 me-5">
+        <div class="card-header">
+            <h5>Doctors - {{ total_doctors }}</h5>
+        </div>
+        <div class="card-body">
+    
+            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-doc-tab" data-bs-toggle="pill" data-bs-target="#active-doc"
+                        type="button" role="tab" aria-controls="active-doc" aria-selected="true">Active</button>
+                </li>
+    
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="blacklist-doc-tab" data-bs-toggle="pill" data-bs-target="#blacklist-doc"
+                        type="button" role="tab" aria-controls="blacklist-doc" aria-selected="false">Blacklist</button>
+                </li>
+                <li class="nav-item ms-auto">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#doctor-create-form">
+                        + Create
+                    </button>
+                    <div class="modal fade" id="doctor-create-form" tabindex="-1" aria-labelledby="exampleModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Create Doctor</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="/doctor?task=create" method="POST">
+                                        <div class="form-floating mb-3">
+                                            <input type="text" class="form-control" id="floatingInput" name="doc_name">
+                                            <label for="floatingInput">Doctor Name</label>
+                                        </div>
+                                        <div class="form-floating mb-3">
+                                            <input type="email" class="form-control" id="floatingInput" name="doc_email">
+                                            <label for="floatingInput">Doctor Email address</label>
+                                        </div>
+                                        <div class="form-floating mb-3">
+                                            <input type="password" class="form-control" id="floatingPassword"
+                                                name="doc_password">
+                                            <label for="floatingPassword">Doctor Password</label>
+                                        </div>
+                                        <div class="form-floating mb-3">
+                                            <input type="tel" class="form-control" id="floatingInput" name="doc_phone">
+                                            <label for="floatingInput">Doctor Phone</label>
+                                        </div>
+                                        
+                                        <div class="form-group mt-3">
+                                            <label for="dept_id">Select Department</label>
+                                            <select id="dept_id" name="doc_dept_id" class="form-select" required>
+                                                <option value="">-- Choose Department --</option>
+                                                {% for dept in all_depts %}
+                                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+    
+    
+                                        <button class="btn btn-primary mt-3">Create</button>
+                                    </form>
+                                </div>
+    
+                            </div>
+                        </div>
+                    </div>
+                </li>
+    
+            </ul>
+            <div class="tab-content" id="pills-tabContent">
+                <div class="tab-pane fade show active" id="active-doc" role="tabpanel" aria-labelledby="active-doc-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Phone</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in active_doc %}
+                            <tr>
+                                <td>{{doc.name}}</td>
+                                <td>{{doc.email}}</td>
+                                <td>{{doc.phone}}</td>
+                                <td>{{doc.department.name}}</td>
+                                <td>
+    
+                                    <button class="btn btn-success" data-bs-toggle="modal"
+                                        data-bs-target="#edit-doc-{{doc.id}}">
+                                        Edit
+                                    </button>
+    
+                                    <!-- Edit Modal -->
+                                    <div class="modal fade" id="edit-doc-{{doc.id}}" tabindex="-1"
+                                        aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Doctor</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                        aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form action="/doctor?task=edit&doc_id={{doc.id}}" method="POST">
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="floatingInput"
+                                                                value="{{doc.name}}" name="doc_name">
+                                                            <label for="floatingInput">Doctor Name</label>
+                                                        </div>
+    
+                                                        <div class="form-floating mb-3">
+                                                            <input type="email" class="form-control" id="floatingInput"
+                                                                value="{{doc.email}}" name="doc_email">
+                                                            <label for="floatingInput">Doctor Email address</label>
+                                                        </div>
+                                                        <div class="form-floating mb-3">
+                                                            <input type="password" class="form-control"
+                                                                id="floatingPassword" value="{{doc.password}}"
+                                                                name="doc_password">
+                                                            <label for="floatingPassword">Doctor Password</label>
+                                                        </div>
+                                                        <div class="form-floating mb-3">
+                                                            <input type="tel" class="form-control" id="floatingInput"
+                                                                value="{{doc.phone}}" name="doc_phone">
+                                                            <label for="floatingInput">Doctor Phone</label>
+                                                        </div>
+    
+                                                        <div class="form-floating mb-3">
+                                                            <select id="dept_id" name="doc_dept_id" class="form-select"
+                                                                required>
+                                                                {% for dept in all_depts %}
+                                                                <option value="{{ dept.id }}" {% if dept.id==doc.dept_id
+                                                                    %}selected{% endif %}>
+                                                                    {{ dept.name }}
+                                                                </option>
+                                                                {% endfor %}
+                                                            </select>
+                                                            <label for="dept_id">Select Department</label>
+                                                        </div>
+    
+    
+    
+                                                        <button class="btn btn-primary">Save</button>
+                                                    </form>
+                                                </div>
+    
+                                            </div>
+                                        </div>
+                                    </div>
+    
+    
+                                    <button class="btn btn-danger" data-bs-toggle="modal"
+                                        data-bs-target="#blacklist-doc-{{doc.id}}">
+                                        Blacklist
+                                    </button>
+    
+                                    <!-- Blacklist Modal -->
+                                    <div class="modal fade" id="blacklist-doc-{{doc.id}}" tabindex="-1"
+                                        aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Blacklist
+                                                        {{doc.name}}</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                        aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are You Sure You Want To Blacklist {{doc.name}}?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form action="/doctor?task=blacklist&doc_id={{doc.id}}" method="POST">
+                                                        <button type="submit" class="btn btn-primary">Yes</button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">No</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+    
+    
+                                </td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+    
+                </div>
+    
+                <div class="tab-pane fade" id="blacklist-doc" role="tabpanel" aria-labelledby="blacklist-doc-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Phone</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bdoc in blacklist_doc %}
+                            <tr>
+                                <td>{{bdoc.name}}</td>
+                                <td>{{bdoc.email}}</td>
+                                <td>{{bdoc.phone}}</td>
+                                <td>{{bdoc.department.name}}</td>
+                                <td>
+                                    <button class="btn btn-success" data-bs-toggle="modal"
+                                        data-bs-target="#edit-doc-{{bdoc.id}}">
+                                        Edit
+                                    </button>
+    
+                                    <!-- Edit Modal -->
+                                    <div class="modal fade" id="edit-doc-{{bdoc.id}}" tabindex="-1"
+                                        aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Doctor</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                        aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form action="/doctor?task=edit&doc_id={{bdoc.id}}" method="POST">
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="floatingInput"
+                                                                value="{{bdoc.name}}" name="doc_name">
+                                                            <label for="floatingInput">Doctor Name</label>
+                                                        </div>
+    
+                                                        <div class="form-floating mb-3">
+                                                            <input type="email" class="form-control" id="floatingInput"
+                                                                value="{{bdoc.email}}" name="doc_email">
+                                                            <label for="floatingInput">Doctor Email address</label>
+                                                        </div>
+                                                        <div class="form-floating mb-3">
+                                                            <input type="password" class="form-control"
+                                                                id="floatingPassword" value="{{bdoc.password}}"
+                                                                name="doc_password">
+                                                            <label for="floatingPassword">Doctor Password</label>
+                                                        </div>
+                                                        <div class="form-floating mb-3">
+                                                            <input type="tel" class="form-control" id="floatingInput"
+                                                                value="{{bdoc.phone}}" name="doc_phone">
+                                                            <label for="floatingInput">Doctor Phone</label>
+                                                        </div>
+    
+                                                        <div class="form-floating mb-3">
+                                                            <select id="dept_id" name="doc_dept_id" class="form-select"
+                                                                required>
+                                                                {% for dept in all_depts %}
+                                                                <option value="{{ dept.id }}" {% if dept.id==bdoc.dept_id
+                                                                    %}selected{% endif %}>
+                                                                    {{ dept.name }}
+                                                                </option>
+                                                                {% endfor %}
+                                                            </select>
+                                                            <label for="dept_id">Select Department</label>
+                                                        </div>
+    
+    
+    
+                                                        <button class="btn btn-primary">Save</button>
+                                                    </form>
+                                                </div>
+    
+                                            </div>
+                                        </div>
+                                    </div>
+    
+    
+                                    <button class="btn btn-danger" data-bs-toggle="modal"
+                                        data-bs-target="#whitelist-doc-{{bdoc.id}}">
+                                        Whitelist
+                                    </button>
+    
+                                    <!-- Whitelist Modal -->
+                                    <div class="modal fade" id="whitelist-doc-{{bdoc.id}}" tabindex="-1"
+                                        aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Whitelist
+                                                        {{bdoc.name}}</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                        aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are You Sure You Want To Whitelist {{bdoc.name}}?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form action="/doctor?task=whitelist&doc_id={{bdoc.id}}" method="POST">
+                                                        <button type="submit" class="btn btn-primary">Yes</button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">No</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+    
+    
+                                </td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+                </div>
+    
+            </div>
+    
+    
+        </div>
+    </div>
+
+
+    <!-- Patients -->
+    <div class="card mt-4 ms-5 me-5">
+        <div class="card-header d-flex justify-content-between align-items-center mb-3">
+            <h5>Patients - {{ total_patients }}</h5>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-pat-tab" data-bs-toggle="pill"
+                        data-bs-target="#active-pat" type="button" role="tab" aria-controls="active-pat"
+                        aria-selected="true">Active</button>
+                </li>
+                
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="blacklist-pat-tab" data-bs-toggle="pill"
+                        data-bs-target="#blacklist-pat" type="button" role="tab" aria-controls="blacklist-pat"
+                        aria-selected="false">Blacklist</button>
+                </li>
+    
+            </ul>
+            <div class="tab-content" id="pills-tabContent">
+                <div class="tab-pane fade show active" id="active-pat" role="tabpanel"
+                    aria-labelledby="active-pat-tab" tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Phone</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ap in active_pat %}
+                            <tr>
+                                <td>{{ap.name}}</td>
+                                <td>{{ap.email}}</td>
+                                <td>{{ap.phone}}</td>
+                                <td>
+
+                                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#edit-pat-{{ap.id}}">
+                                        Edit
+                                    </button>
+                                    
+                                    <!-- Edit -->
+                                
+                                <div class="modal" id="edit-pat-{{ap.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                    aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Patient</h1>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form action="/patient?task=edit&pat_id={{ap.id}}" method="POST">
+                                                    <div class="form-floating mb-3">
+                                                        <input type="text" class="form-control" id="floatingInput" value="{{ap.name}}" name="pat_name">
+                                                        <label for="floatingInput">Patient Name</label>
+                                                    </div>
+                                
+                                                    <div class="form-floating mb-3">
+                                                        <input type="email" class="form-control" id="floatingInput" value="{{ap.email}}"
+                                                            name="pat_email">
+                                                        <label for="floatingInput">Patient Email address</label>
+                                                    </div>
+                                                    <div class="form-floating mb-3">
+                                                        <input type="password" class="form-control" id="floatingPassword" value="{{ap.password}}"
+                                                            name="pat_password">
+                                                        <label for="floatingPassword">Patient Password</label>
+                                                    </div>
+                                                    <div class="form-floating mb-3">
+                                                        <input type="tel" class="form-control" id="floatingInput" value="{{ap.phone}}"
+                                                            name="pat_phone">
+                                                        <label for="floatingInput">Patient Phone</label>
+                                                    </div>
+                                
+                                
+                                
+                                                    <button class="btn btn-primary">Edit</button>
+                                                </form>
+                                            </div>
+                                
+                                        </div>
+                                    </div>
+                                </div>
+                                    
+
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#blacklist-pat-{{ap.id}}">
+                                        Blacklist
+                                    </button>
+
+                                    <!-- Blacklist Modal -->
+                                    <div class="modal fade" id="blacklist-pat-{{ap.id}}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Blacklist {{ap.name}}</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are You Sure You Want To Blacklist {{ap.name}}?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form action="/patient?task=blacklist&pat_id={{ap.id}}" method="POST">
+                                                        <button type="submit" class="btn btn-primary">Yes</button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                </td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+    
+                </div>
+               
+                <div class="tab-pane fade" id="blacklist-pat" role="tabpanel" aria-labelledby="blacklist-pat-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Phone</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bp in blacklist_pat %}
+                            <tr>
+                                <td>{{bp.name}}</td>
+                                <td>{{bp.email}}</td>
+                                <td>{{bp.phone}}</td>
+                                <td>
+                                
+                                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#edit-pat-{{bp.id}}">
+                                        Edit
+                                    </button>
+                                
+                                    <!-- Edit -->
+                                <div class="modal" id="edit-pat-{{bp.id}}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Patient</h1>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form action="/patient?task=edit&pat_id={{bp.id}}" method="POST">
+                                                    <div class="form-floating mb-3">
+                                                        <input type="text" class="form-control" id="floatingInput" value="{{bp.name}}" name="pat_name">
+                                                        <label for="floatingInput">Patient Name</label>
+                                                    </div>
+                                
+                                                    <div class="form-floating mb-3">
+                                                        <input type="email" class="form-control" id="floatingInput" value="{{bp.email}}"
+                                                            name="pat_email">
+                                                        <label for="floatingInput">Patient Email address</label>
+                                                    </div>
+                                                    <div class="form-floating mb-3">
+                                                        <input type="password" class="form-control" id="floatingPassword" value="{{bp.password}}"
+                                                            name="pat_password">
+                                                        <label for="floatingPassword">Patient Password</label>
+                                                    </div>
+                                                    <div class="form-floating mb-3">
+                                                        <input type="tel" class="form-control" id="floatingInput" value="{{bp.phone}}" name="pat_phone">
+                                                        <label for="floatingInput">Patient Phone</label>
+                                                    </div>
+                                
+                                
+                                
+                                                    <button class="btn btn-primary">Edit</button>
+                                                </form>
+                                            </div>
+                                
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#whitelist-pat-{{bp.id}}">
+                                        Whitelist
+                                    </button>
+                                
+                                    <!-- Whitelist Modal -->
+                                    <div class="modal fade" id="whitelist-pat-{{bp.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                        aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Whitelist {{bp.name}}</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are You Sure You Want To Whitelist {{bp.name}}?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form action="/patient?task=whitelist&pat_id={{bp.id}}" method="POST">
+                                                        <button type="submit" class="btn btn-primary">Yes</button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                
+                                
+                                </td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+                </div>
+    
+            </div>
+    
+    
+        </div>
+    </div>
+
+
+    <!-- Appoinments -->
+    <div class="card mt-4 ms-5 me-5">
+        <div class="card-header">
+            <h5>Appoinments - {{ total_appointments }}</h5>
+        </div>
+        <div class="card-body">
+    
+            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="booked-appoint-tab" data-bs-toggle="pill"
+                        data-bs-target="#booked-appoint" type="button" role="tab" aria-controls="booked-appoint"
+                        aria-selected="true">Booked</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="completed-appoint-tab" data-bs-toggle="pill"
+                        data-bs-target="#completed-appoint" type="button" role="tab" aria-controls="completed-appoint"
+                        aria-selected="false">Completed</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="canceled-appoint-tab" data-bs-toggle="pill"
+                        data-bs-target="#canceled-appoint" type="button" role="tab" aria-controls="canceled-appoint"
+                        aria-selected="false">Canceled</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="resheduled-appoint-tab" data-bs-toggle="pill"
+                        data-bs-target="#resheduled-appoint" type="button" role="tab" aria-controls="resheduled-appoint"
+                        aria-selected="false">Resheduled</button>
+                </li>
+    
+            </ul>
+            <div class="tab-content" id="pills-tabContent">
+                <div class="tab-pane fade show active" id="booked-appoint" role="tabpanel"
+                    aria-labelledby="booked-appoint-tab" tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Doctor</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ba in booked_appoint %}
+                            <tr>
+                                <td>{{ba.patient.name}}</td>
+                                <td>{{ba.doctor.name}}</td>
+                                <td>{{ba.department.name}}</td>
+                                <td>{{ba.date}}</td>
+                                <td>{{ba.time}}</td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+    
+                </div>
+                <div class="tab-pane fade" id="completed-appoint" role="tabpanel" aria-labelledby="completed-appoint-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Doctor</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ca in completed_appoint %}
+                            <tr>
+                                <td>{{ca.patient.name}}</td>
+                                <td>{{ca.doctor.name}}</td>
+                                <td>{{ca.department.name}}</td>
+                                <td>{{ca.date}}</td>
+                                <td>{{ca.time}}</td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+                </div>
+                <div class="tab-pane fade" id="canceled-appoint" role="tabpanel" aria-labelledby="canceled-appoint-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Doctor</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cana in canceled_appoint %}
+                            <tr>
+                                <td>{{cana.patient.name}}</td>
+                                <td>{{cana.doctor.name}}</td>
+                                <td>{{cana.department.name}}</td>
+                                <td>{{cana.date}}</td>
+                                <td>{{cana.time}}</td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+                </div>
+                <div class="tab-pane fade" id="resheduled-appoint" role="tabpanel" aria-labelledby="resheduled-appoint-tab"
+                    tabindex="0">
+    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Doctor</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ra in resheduled_appoint %}
+                            <tr>
+                                <td>{{ra.patient.name}}</td>
+                                <td>{{ra.doctor.name}}</td>
+                                <td>{{ra.department.name}}</td>
+                                <td>{{ra.date}}</td>
+                                <td>{{ra.time}}</td>
+                            </tr>
+                            {% endfor %}
+    
+                        </tbody>
+                    </table>
+    
+                </div>
+    
+            </div>
+    
+    
+        </div>
+    </div>
+
 
 
 

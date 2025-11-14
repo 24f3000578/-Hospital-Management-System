@@ -10,13 +10,20 @@
 </head>
 
 <body>
+    {% set messages = get_flashed_messages() %}
+    {% for msg in messages %}
+    <div class="alert alert-warning alert-dismissible ms-5 me-5 mt-2 fade show" role="alert">
+        {{msg}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
     <div class="container d-flex justify-content-center d-flex align-items-center min-vh-100">
         <div class="card" style="width: 30%;">
             <div class="card-header">
                 Patient Register
             </div>
             <div class="card-body">
-                <form action="/register?u_type=customer" method="POST">
+                <form action="/patient/register" method="POST">
                     <div class="form-floating mb-3">
                         <input type="text" class="form-control" id="floatingInput" name="pat_name">
                         <label for="floatingInput">Name</label>
@@ -34,7 +41,7 @@
                         <label for="floatingInput">Phone</label>
                     </div>
                     <button class="btn btn-primary">
-                        Save
+                        Register
                     </button>
                 </form>
             </div>

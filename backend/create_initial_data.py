@@ -27,14 +27,14 @@ if db.session.query(Department).count()==0:
 
 if db.session.query(Doctor).count()==0:
 
-    R = Doctor(name = "Dr. Ram", email = "ram@myapp.com", password = "pass", phone = "9999999999", dept_id = general_surgery.id)
+    R = Doctor(name = "Dr. Ram", email = "ram@myapp.com", password = "pass", status = "Available", phone = "9999999999", dept_id = general_surgery.id)
     db.session.add(R)
 
 
-    S = Doctor(name = "Dr. Shyam", email = "shyam@myapp.com", password = "pass", phone = "9999999989", dept_id = general_medicine.id)
+    S = Doctor(name = "Dr. Shyam", email = "shyam@myapp.com", password = "pass", status = "Available", phone = "9999999989", dept_id = general_medicine.id)
     db.session.add(S)
 
-    P = Doctor(name = "Dr. Prakash", email = "prakash@myapp.com", password = "pass", phone = "9999999990", dept_id = general_surgery.id)
+    P = Doctor(name = "Dr. Prakash", email = "prakash@myapp.com", password = "pass", status = "Available", phone = "9999999990", dept_id = general_surgery.id)
     db.session.add(P)
     db.session.commit()
 
