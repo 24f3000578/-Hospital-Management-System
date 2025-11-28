@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Patient History - {{ patient.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <a href="/doctor/dashboard" class="btn btn-link">&larr; Back to Dashboard</a>
+
+        <div class="card mt-2">
+            <div class="card-header">
+                <h5 class="mb-0">History for {{ patient.name }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if appointments %}
+                {% for appt in appointments %}
+                <div class="mb-4 pb-3 border-bottom">
+                    <h6 class="fw-bold">
+                        Visit on {{ appt.date }} at {{ appt.time }}
+                        <span class="badge bg-secondary ms-2">{{ appt.status }}</span>
+                    </h6>
+
+                    {% if appt.treatments %}
+                    {% for t in appt.treatments %}
+                    <dl class="row mb-2">
+                        <dt class="col-sm-3">Visit Type</dt>
+                        <dd class="col-sm-9">{{ t.visit_type or '-' }}</dd>
+
+                        <dt class="col-sm-3">Test</dt>
+                        <dd class="col-sm-9">{{ t.test or '-' }}</dd>
+
+                        <dt class="col-sm-3">Diagnosis</dt>
+                        <dd class="col-sm-9">{{ t.diagnosis or '-' }}</dd>
+
+                        <dt class="col-sm-3">Prescription</dt>
+                        <dd class="col-sm-9">{{ t.prescription or '-' }}</dd>
+
+                        <dt class="col-sm-3">Notes</dt>
+                        <dd class="col-sm-9">{{ t.notes or '-' }}</dd>
+                    </dl>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">No treatment details recorded for this appointment.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted">No history available for this patient.</p>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

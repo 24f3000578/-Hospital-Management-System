@@ -1,7 +1,8 @@
 from app import app
 from flask import render_template,request,redirect,url_for,flash
-from .models import db,Patient,Admin,Doctor,Department,Appointment
+from .models import db,Patient,Admin,Doctor,Department,Appointment,Treatment,DoctorAvailability
 from flask_login import login_user,login_required,current_user
+from datetime import date, datetime, timedelta,time
 
 @app.route("/")
 def index():
@@ -106,11 +107,165 @@ def pat_dashboard():
     return render_template("/patient/dashboard.html" , current_patient = current_user)
 
 
-@app.route("/doctor/dashboard" , methods=["GET" , "POST"])
+@app.route("/doctor/dashboard", methods=["GET", "POST"])
 @login_required
 def doc_dashboard():
+    doctor_id = current_user.id
 
-    return render_template("/doctor/dashboard.html" , current_doctor = current_user)
+    if not doctor_id:
+        return redirect(url_for("doctor_login"))
+
+    # Base Date
+    base_date_str = request.args.get("date")
+    if base_date_str:
+        base_date = date.fromisoformat(base_date_str)  # In "YYYY-MM-DD"
+    else:
+        base_date = date.today()
+
+    # Base Query For This Doctor
+    base_query = Appointment.query.filter_by(doc_id=doctor_id)
+
+    # Active Appointments
+    active_query = base_query.filter(
+        Appointment.status != "Completed",
+        Appointment.status != "Canceled"
+    )
+
+   
+
+    # Week Appointments
+    start = base_date
+    end = base_date + timedelta(days=7)
+    week_appointments = (
+        active_query.filter(
+            Appointment.date >= start,
+            Appointment.date < end
+        )
+        .order_by(Appointment.date, Appointment.time)
+        .all()
+    )
+
+     # Day Appointments
+    day_appointments = (
+        active_query.filter_by(date=base_date)
+        .order_by(Appointment.time)
+        .all()
+    )
+
+    # Completed / Canceled 
+    completed_appoint = (
+        base_query.filter_by(status="Completed")
+        .order_by(Appointment.date, Appointment.time)
+        .all()
+    )
+
+    canceled_appoint = (
+        base_query.filter_by(status="Canceled")
+        .order_by(Appointment.date, Appointment.time)
+        .all()
+    )
+
+    # Assigned Patients
+
+    assigned_patients = (
+        db.session.query(Patient)
+        .join(Appointment)
+        .filter(Appointment.doc_id == doctor_id)
+        .distinct()
+        .all()
+    )
+    today = date.today()
+    next_seven_days = [today + timedelta(days=i) for i in range(7)]
+
+    return render_template(
+        "doctor/dashboard.html",
+        current_doctor=current_user,
+        base_date=base_date,
+        timedelta=timedelta,
+        day_appointments=day_appointments,
+        week_appointments=week_appointments,
+        completed_appoint=completed_appoint,
+        canceled_appoint=canceled_appoint,
+        assigned_patients=assigned_patients,
+        next_seven_days=next_seven_days
+    )
+
+@app.route("/doctor/patient/<int:patient_id>/history")
+@login_required
+def patient_history(patient_id):
+    doctor_id = current_user.id
+
+    # Get patient or 404
+    patient = Patient.query.get_or_404(patient_id)
+
+    # All appointments of this patient with this doctor
+    appointments = (
+        Appointment.query
+        .filter_by(doc_id=doctor_id)
+        .order_by(Appointment.date.desc(), Appointment.time.desc())
+        .all()
+    )
+
+    # All treatments for those appointments
+    from sqlalchemy.orm import joinedload
+    appointments = (
+        Appointment.query
+        .options(joinedload(Appointment.treatments))
+        .filter(
+            Appointment.doc_id == doctor_id,
+            Patient.id == patient_id
+        )
+        .order_by(Appointment.date.desc(), Appointment.time.desc())
+        .all()
+    )
+
+    return render_template(
+        "doctor/patient_history.html",
+        patient=patient,
+        appointments=appointments,
+    )
+
+@app.route("/doctor/availability", methods=["POST"])
+@login_required
+def provide_availability():
+    doctor_id = current_user.id
+    slots = request.form.getlist("slots")  # list of "YYYY-MM-DD|HH:MM|HH:MM"
+
+    if not slots:
+        flash("No availability selected.", "warning")
+        return redirect(url_for("doc_dashboard"))
+
+    for slot in slots:
+        try:
+            date_str, start_str, end_str = slot.split("|")
+            day = date.fromisoformat(date_str)
+            start_t = time.fromisoformat(start_str)
+            end_t = time.fromisoformat(end_str)
+        except ValueError:
+            continue  # skip/pass bad values
+
+        existing = DoctorAvailability.query.filter_by(
+            doctor_id=doctor_id,
+            date=day,
+            start_time=start_t,
+            end_time=end_t
+        ).first()
+
+        if existing:
+            existing.is_available = True
+        else:
+            availability = DoctorAvailability(
+                doctor_id=doctor_id,
+                date=day,
+                start_time=start_t,
+                end_time=end_t,
+                is_available=True
+            )
+            db.session.add(availability)
+
+    db.session.commit()
+    flash("Availability updated for the next 7 days.", "success")
+    return redirect(url_for("doc_dashboard"))
 
 @app.route("/admin/dashboard" , methods=["GET" , "POST"])
 @login_required
@@ -262,3 +417,70 @@ def patient():
             db.session.commit()
             flash(f"{pat.name} Is Updated")
             return redirect("/admin/dashboard")
+
+
+
+@app.route("/treatment", methods=["POST"])
+def treatment():
+    task = request.args.get("task")
+    appoint_id = request.args.get("appoint_id", type=int)
+
+    if not appoint_id:
+        flash("Appointment id is missing", "danger")
+        return redirect("/doctor/dashboard")
+
+    # For the appointment object
+    appointment = Appointment.query.get(appoint_id)
+    if not appointment:
+        flash("Appointment not found", "danger")
+        return redirect("/doctor/dashboard")
+
+    # Common form fields
+    visit_type = request.form.get("t_visit_type")
+    test = request.form.get("treat_test")
+    diagnosis = request.form.get("treat_diagnosis")
+    prescription = request.form.get("treat_prescription")
+    notes = request.form.get("treat_notes")
+    if task == "completed":
+        new_treat = Treatment(
+            appoint_id=appointment.id,   # Link to appointment
+            visit_type=visit_type,
+            test=test,
+            diagnosis=diagnosis,
+            prescription=prescription,
+            notes=notes
+        )
+        db.session.add(new_treat)
+
+        appointment.status = "Completed"
+        db.session.commit()
+
+        flash(f"Appointment {appointment.id} is marked as Completed", "success")
+        return redirect("/doctor/dashboard")
+    elif task == "update":
+        treat = Treatment.query.filter_by(appoint_id=appointment.id).first()
+
+        if not treat:
+            flash("No existing treatment found to update", "danger")
+            return redirect("/doctor/dashboard")
+
+        treat.visit_type = visit_type
+        treat.test = test
+        treat.diagnosis = diagnosis
+        treat.prescription = prescription
+        treat.notes = notes
+
+        db.session.commit()
+        flash(f"Treatment for Appointment {appointment.id} updated", "success")
+        return redirect("/doctor/dashboard")
+
+    elif request.args.get("task") == "canceled":
+            appointment.status = "Canceled"
+            db.session.commit()
+            flash(f"{appointment.patient.name} Is Canceled")
+            return redirect("/doctor/dashboard")
+        
+    # Fallback If Task Is Unknown
+    else:
+        flash("Unknown treatment action", "danger")
+        return redirect("/doctor/dashboard")

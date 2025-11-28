@@ -1,7 +1,7 @@
 import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-
+import datetime
 db = SQLAlchemy()
 
 
@@ -68,6 +68,19 @@ class Treatment(db.Model):
     __tablename__ = "treatment"
     id  = db.Column(db.Integer , primary_key = True , autoincrement = True)
     appoint_id = db.Column(db.Integer, db.ForeignKey ("appointment.id"), nullable = False)
-    diagnosis = db.Column(db.String, nullable = False)
-    prescription = db.Column(db.String, nullable = False)
-    notes = db.Column(db.String, nullable = False)
+    visit_dt = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    visit_type = db.Column(db.String(50))
+    test = db.Column(db.String(50))
+    diagnosis = db.Column(db.String, nullable = True)
+    prescription = db.Column(db.String, nullable = True)
+    notes = db.Column(db.String, nullable = True)
+
+class DoctorAvailability(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    is_available = db.Column(db.Boolean, default=True)
+
+    doctor = db.relationship("Doctor", backref="availabilities")
