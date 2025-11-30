@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ doctor.name }} - Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <a href="{{ url_for('pat_dashboard') }}" class="btn btn-link">&larr; Back to Dashboard</a>
+
+        <div class="card mt-2">
+            <div class="card-header">
+                <h5 class="mb-0">Doctor Details</h5>
+            </div>
+            <div class="card-body">
+                <h4>{{ doctor.name }}</h4>
+                <p class="mb-1">
+                    <strong>Department:</strong> {{ doctor.department.name if doctor.department else "-" }}
+                </p>
+                <p class="mb-1">
+                    <strong>Email:</strong> {{ doctor.email or "-" }}
+                </p>
+                <p class="mb-1">
+                    <strong>Phone:</strong> {{ doctor.phone or "-" }}
+                </p>
+                <p class="mb-1">
+                    <strong>Status:</strong> {{ doctor.status or "-" }}
+                </p>
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('patient_check_availability', doctor_id=doctor.id) }}" class="btn btn-primary me-2">
+                        Check Availability
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

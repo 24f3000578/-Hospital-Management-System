@@ -539,6 +539,7 @@
                                 <th scope="col">Name</th>
                                 <th scope="col">Email</th>
                                 <th scope="col">Phone</th>
+                                <th scope="col">History</th>
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
@@ -548,6 +549,11 @@
                                 <td>{{ap.name}}</td>
                                 <td>{{ap.email}}</td>
                                 <td>{{ap.phone}}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_patient_history', patient_id=ap.id) }}" class="btn btn-primary">
+                                        View
+                                    </a>
+                                </td>
                                 <td>
 
                                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#edit-pat-{{ap.id}}">
@@ -643,6 +649,7 @@
                                 <th scope="col">Name</th>
                                 <th scope="col">Email</th>
                                 <th scope="col">Phone</th>
+                                <th scope="col">History</th>
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
@@ -652,6 +659,11 @@
                                 <td>{{bp.name}}</td>
                                 <td>{{bp.email}}</td>
                                 <td>{{bp.phone}}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_patient_history', patient_id=bp.id) }}" class="btn btn-primary">
+                                        View
+                                    </a>
+                                </td>
                                 <td>
                                 
                                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#edit-pat-{{bp.id}}">

@@ -3,6 +3,7 @@ from flask import render_template,request,redirect,url_for,flash
 from .models import db,Patient,Admin,Doctor,Department,Appointment,Treatment,DoctorAvailability
 from flask_login import login_user,login_required,current_user
 from datetime import date, datetime, timedelta,time
+from flask_login import current_user
 
 @app.route("/")
 def index():
@@ -103,9 +104,159 @@ def register():
 @app.route("/patient/dashboard" , methods=["GET" , "POST"])
 @login_required
 def pat_dashboard():
+    current_patient = current_user
+    all_depts = db.session.query(Department).all()
+    today = date.today()
+    upcoming_appointments = (
+        Appointment.query
+        .filter(
+            Appointment.pat_id == current_patient.id,
+            Appointment.date >= today,
+            Appointment.status != "Canceled"
+        )
+        .order_by(Appointment.date, Appointment.time)
+        .all()  
+    )
+    return render_template("/patient/dashboard.html" , current_patient = current_user, all_depts = all_depts,
+                            upcoming_appointments=upcoming_appointments)
 
-    return render_template("/patient/dashboard.html" , current_patient = current_user)
+@app.route("/patient/profile/edit", methods=["GET", "POST"])
+@login_required
+def edit_patient_profile():
+    patient = current_user
 
+    if request.method == "POST":
+        # Read Form Values
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        password= request.form.get("password")
+
+        # Update Fields
+        patient.name = name
+        patient.phone = phone
+        patient.password = password
+        db.session.commit()
+        flash("Profile updated successfully.", "success")
+        return redirect(url_for("pat_dashboard"))
+
+    # Show form with existing details
+    return render_template("patient/edit_profile.html", patient=patient)
+
+@app.route("/patient/history")
+@login_required
+def patient_self_history():
+    current_patient = current_user
+
+    # Past Completed Appointments For The Patient
+    past_appointments = (
+        Appointment.query
+        .filter(
+            Appointment.pat_id == current_patient.id,
+            Appointment.date < date.today(),
+            Appointment.status == "Completed"
+        )
+        .order_by(Appointment.date.desc(), Appointment.time.desc())
+        .all()
+    )
+
+    return render_template(
+        "doctor/patient_history.html",
+        patient=current_patient,
+        appointments=past_appointments,
+        back_url=url_for("pat_dashboard")
+    )
+
+@app.route("/patient/doctor/<int:doctor_id>/availability")
+@login_required
+def patient_check_availability(doctor_id):
+    # Get Doctor or 404
+    doctor = Doctor.query.get_or_404(doctor_id)
+
+    # Upcoming Availability
+    today = date.today()
+    slots = (
+        DoctorAvailability.query
+        .filter(
+            DoctorAvailability.doctor_id == doctor_id,
+            DoctorAvailability.date >= today,
+            DoctorAvailability.is_available == True
+        )
+        .order_by(DoctorAvailability.date, DoctorAvailability.start_time)
+        .all()
+    )
+
+    return render_template(
+        "patient/doctor_availability.html",
+        doctor=doctor,
+        slots=slots,
+    )
+
+@app.route("/patient/doctor/<int:doctor_id>/details")
+@login_required
+def patient_doctor_details(doctor_id):
+    doctor = Doctor.query.get_or_404(doctor_id)
+
+    return render_template(
+        "patient/doctor_details.html",
+        doctor=doctor,
+    )
+
+@app.route("/patient/book/<int:availability_id>", methods=["POST"])
+@login_required
+def book_appointment(availability_id):
+    current_patient = current_user
+
+    slot = DoctorAvailability.query.get_or_404(availability_id)
+
+   # Prevent Past Slot Bookings
+    if slot.date < date.today():
+        flash("Cannot book a past slot.", "danger")
+        return redirect(url_for("patient_check_availability", doctor_id=slot.doctor_id))
+
+    # Prevent Double Bookings
+    existing_appointment = Appointment.query.filter_by(
+        doc_id=slot.doctor_id,
+        date=slot.date,
+        time=slot.start_time,
+        status="Booked"
+    ).first()
+
+    if existing_appointment:
+        flash("This slot has already been booked!", "danger")
+        return redirect(url_for("patient_check_availability", doctor_id=slot.doctor_id))
+
+    # Create Appointment
+    new_appt = Appointment(
+        doc_id=doctor.id,
+        pat_id=current_patient.id,
+        dept_id=slot.doctor.dept_id,
+        date=slot.date,
+        time=slot.start_time,
+        status="Booked"
+    )
+
+    db.session.add(new_appt)
+    db.session.commit()
+
+    flash("Your appointment has been booked successfully.", "success")
+    return redirect(url_for("pat_dashboard"))
+
+@app.route("/patient/appointment/<int:appt_id>/cancel", methods=["POST"])
+@login_required
+def cancel_patient_appointment(appt_id):
+    current_patient = current_user
+
+    appt = Appointment.query.get_or_404(appt_id)
+
+    if appt.patient.id != current_patient.id:
+        flash("You are not allowed to cancel this appointment.", "danger")
+        return redirect(url_for("pat_dashboard"))
+
+    # Update Status
+    appt.status = "Canceled"
+    db.session.commit()
+    flash("Your appointment has been canceled.", "success")
+    return redirect(url_for("pat_dashboard"))
 
 @app.route("/doctor/dashboard", methods=["GET", "POST"])
 @login_required
@@ -177,6 +328,20 @@ def doc_dashboard():
     today = date.today()
     next_seven_days = [today + timedelta(days=i) for i in range(7)]
 
+    # Fetch Existing Availability For 7 Days
+    existing_avails = DoctorAvailability.query.filter(
+        DoctorAvailability.doctor_id == doctor_id,
+        DoctorAvailability.date >= today,
+        DoctorAvailability.date < today + timedelta(days=7)
+    ).all()
+
+    # Build A Map
+    avail_map = {}
+    for a in existing_avails:
+        key = f"{a.date.isoformat()}|{a.start_time.strftime('%H:%M')}|{a.end_time.strftime('%H:%M')}"
+        avail_map[key] = a.is_available
+
+
     return render_template(
         "doctor/dashboard.html",
         current_doctor=current_user,
@@ -187,7 +352,8 @@ def doc_dashboard():
         completed_appoint=completed_appoint,
         canceled_appoint=canceled_appoint,
         assigned_patients=assigned_patients,
-        next_seven_days=next_seven_days
+        next_seven_days=next_seven_days,
+        avail_map=avail_map
     )
 
 @app.route("/doctor/patient/<int:patient_id>/history")
@@ -195,10 +361,10 @@ def doc_dashboard():
 def patient_history(patient_id):
     doctor_id = current_user.id
 
-    # Get patient or 404
+    # Get Patient or 404
     patient = Patient.query.get_or_404(patient_id)
 
-    # All appointments of this patient with this doctor
+    # All Appointments Of Respective Patient With Respective Doctor
     appointments = (
         Appointment.query
         .filter_by(doc_id=doctor_id)
@@ -206,7 +372,7 @@ def patient_history(patient_id):
         .all()
     )
 
-    # All treatments for those appointments
+    # All Treatments For Those Appointments
     from sqlalchemy.orm import joinedload
     appointments = (
         Appointment.query
@@ -229,39 +395,49 @@ def patient_history(patient_id):
 @login_required
 def provide_availability():
     doctor_id = current_user.id
-    slots = request.form.getlist("slots")  # list of "YYYY-MM-DD|HH:MM|HH:MM"
 
-    if not slots:
-        flash("No availability selected.", "warning")
-        return redirect(url_for("doc_dashboard"))
+    # List Of Strings
+    selected_slots = set(request.form.getlist("slots"))
 
-    for slot in slots:
-        try:
-            date_str, start_str, end_str = slot.split("|")
-            day = date.fromisoformat(date_str)
-            start_t = time.fromisoformat(start_str)
-            end_t = time.fromisoformat(end_str)
-        except ValueError:
-            continue  # skip/pass bad values
+    today = date.today()
+    days = [today + timedelta(days=i) for i in range(7)]
 
-        existing = DoctorAvailability.query.filter_by(
+    # Build The Full Grid Of Slots
+    all_slot_strs = []
+    for d in days:
+        day_str = d.isoformat()
+        all_slot_strs.append(f"{day_str}|08:00|12:00")
+        all_slot_strs.append(f"{day_str}|16:00|20:00")
+
+    # For Each Possible Slot For The Next 7 Days:
+    for slot_str in all_slot_strs:
+        date_str, start_str, end_str = slot_str.split("|")
+        day = date.fromisoformat(date_str)
+        start_t = time.fromisoformat(start_str)
+        end_t = time.fromisoformat(end_str)
+
+        availability = DoctorAvailability.query.filter_by(
             doctor_id=doctor_id,
             date=day,
             start_time=start_t,
             end_time=end_t
         ).first()
 
-        if existing:
-            existing.is_available = True
+        if slot_str in selected_slots:
+            if availability:
+                availability.is_available = True
+            else:
+                availability = DoctorAvailability(
+                    doctor_id=doctor_id,
+                    date=day,
+                    start_time=start_t,
+                    end_time=end_t,
+                    is_available=True
+                )
+                db.session.add(availability)
         else:
-            availability = DoctorAvailability(
-                doctor_id=doctor_id,
-                date=day,
-                start_time=start_t,
-                end_time=end_t,
-                is_available=True
-            )
-            db.session.add(availability)
+            if availability:
+                availability.is_available = False
 
     db.session.commit()
     flash("Availability updated for the next 7 days.", "success")
@@ -288,6 +464,27 @@ def admin_dashboard():
                             resheduled_appoint = resheduled_appoint, active_pat = active_pat, blacklist_pat = blacklist_pat,
                             active_doc = active_doc, blacklist_doc = blacklist_doc, total_doctors=total_doctors, total_patients=total_patients,
                             total_appointments=total_appointments)
+
+@app.route("/admin/patient/<int:patient_id>/history")
+@login_required
+def admin_patient_history(patient_id):
+
+    patient = Patient.query.get_or_404(patient_id)
+
+    # All Appointments For The Patient
+    appointments = (
+        Appointment.query
+        .filter(Appointment.pat_id == patient.id)
+        .order_by(Appointment.date.desc(), Appointment.time.desc())
+        .all()
+    )
+
+    return render_template(
+        "doctor/patient_history.html",
+        patient=patient,
+        appointments=appointments,
+        back_url=url_for("admin_dashboard")
+    )
 
 @app.route("/doctor/stats")
 def doc_stats():

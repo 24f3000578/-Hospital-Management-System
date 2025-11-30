@@ -10,7 +10,9 @@
 <body class="bg-light">
 
     <div class="container mt-4">
-        <a href="/doctor/dashboard" class="btn btn-link">&larr; Back to Dashboard</a>
+        <a href="{{ back_url if back_url is defined else url_for('doc_dashboard') }}" class="btn btn-link">
+            &larr; Back to Dashboard
+        </a>
 
         <div class="card mt-2">
             <div class="card-header">
