@@ -3,12 +3,28 @@ from flask import render_template,request,redirect,url_for,flash
 from .models import db,Patient,Admin,Doctor,Department,Appointment,Treatment,DoctorAvailability
 from flask_login import login_user,login_required,current_user
 from datetime import date, datetime, timedelta,time
-from flask_login import current_user
+from flask_login import current_user, logout_user
+from sqlalchemy import or_, cast, String
 
 @app.route("/")
 def index():
     return render_template("home.html")
 
+@app.route("/logout")
+@login_required
+def logout():
+    if isinstance(current_user, Admin):
+        next_endpoint = "admin_login"
+    elif isinstance(current_user, Doctor):
+        next_endpoint = "doctor_login"
+    elif isinstance(current_user, Patient):
+        next_endpoint = "patient_login"
+    else:
+        next_endpoint = "patient_login"
+
+    logout_user()
+    flash("You have been logged out.", "info")
+    return redirect(url_for(next_endpoint))
 
 @app.route("/admin/login" ,  methods=["GET","POST"])
 def admin_login():
@@ -105,20 +121,42 @@ def register():
 @login_required
 def pat_dashboard():
     current_patient = current_user
-    all_depts = db.session.query(Department).all()
     today = date.today()
+
+    # Search Term
+    search_term = request.args.get("search", "").strip()
+
+    # Base Query For Departments
+    dept_query = Department.query
+
+    if search_term:
+        like = f"%{search_term}%"
+        dept_query = (
+            dept_query
+            .outerjoin(Doctor, Doctor.dept_id == Department.id)
+            .filter(
+                or_(
+                    Department.name.ilike(like),
+                    Doctor.name.ilike(like),
+                )
+            )
+            .distinct()
+        )
+
+    all_depts = dept_query.all()
     upcoming_appointments = (
         Appointment.query
         .filter(
             Appointment.pat_id == current_patient.id,
             Appointment.date >= today,
-            Appointment.status != "Canceled"
+            Appointment.status != "Canceled",
+            Appointment.status != "Completed"
         )
         .order_by(Appointment.date, Appointment.time)
         .all()  
     )
     return render_template("/patient/dashboard.html" , current_patient = current_user, all_depts = all_depts,
-                            upcoming_appointments=upcoming_appointments)
+                            upcoming_appointments=upcoming_appointments, search_term=search_term)
 
 @app.route("/patient/profile/edit", methods=["GET", "POST"])
 @login_required
@@ -139,7 +177,7 @@ def edit_patient_profile():
         flash("Profile updated successfully.", "success")
         return redirect(url_for("pat_dashboard"))
 
-    # Show form with existing details
+    # Show Form With Existing Details
     return render_template("patient/edit_profile.html", patient=patient)
 
 @app.route("/patient/history")
@@ -152,7 +190,7 @@ def patient_self_history():
         Appointment.query
         .filter(
             Appointment.pat_id == current_patient.id,
-            Appointment.date < date.today(),
+            Appointment.date <= date.today(),
             Appointment.status == "Completed"
         )
         .order_by(Appointment.date.desc(), Appointment.time.desc())
@@ -227,7 +265,7 @@ def book_appointment(availability_id):
 
     # Create Appointment
     new_appt = Appointment(
-        doc_id=doctor.id,
+        doc_id=slot.doctor_id,
         pat_id=current_patient.id,
         dept_id=slot.doctor.dept_id,
         date=slot.date,
@@ -340,7 +378,16 @@ def doc_dashboard():
     for a in existing_avails:
         key = f"{a.date.isoformat()}|{a.start_time.strftime('%H:%M')}|{a.end_time.strftime('%H:%M')}"
         avail_map[key] = a.is_available
-
+    
+    last_treatments = {}
+    for appt in completed_appoint:
+        last = (
+            Treatment.query
+            .filter_by(appoint_id=appt.id)
+            .order_by(Treatment.id.desc())   # or Treatment.date.desc()
+            .first()
+        )
+        last_treatments[appt.id] = last
 
     return render_template(
         "doctor/dashboard.html",
@@ -353,7 +400,7 @@ def doc_dashboard():
         canceled_appoint=canceled_appoint,
         assigned_patients=assigned_patients,
         next_seven_days=next_seven_days,
-        avail_map=avail_map
+        avail_map=avail_map, last_treatments=last_treatments
     )
 
 @app.route("/doctor/patient/<int:patient_id>/history")
@@ -447,15 +494,80 @@ def provide_availability():
 @login_required
 def admin_dashboard():
     docs = db.session.query(Doctor).all()
+    doctor_search = request.args.get("doctor_search", "").strip()
+    patient_search = request.args.get("patient_search", "").strip()
     depts = db.session.query(Department).all()
+    # Doctor Search
+    if doctor_search:
+        like = f"%{doctor_search}%"
+
+        active_doc = (
+            Doctor.query
+            .join(Department, Doctor.dept_id == Department.id)
+            .filter(
+                Doctor.status == "Active",
+                or_(
+                    Doctor.name.ilike(like),
+                    Department.name.ilike(like),
+                )
+            )
+            .all()
+        )
+
+        blacklist_doc = (
+            Doctor.query
+            .join(Department, Doctor.dept_id == Department.id)
+            .filter(
+                Doctor.status == "Blacklist",
+                or_(
+                    Doctor.name.ilike(like),
+                    Department.name.ilike(like),
+                )
+            )
+            .all()
+        )
+    else:
+        active_doc = Doctor.query.filter_by(status="Active").all()
+        blacklist_doc = Doctor.query.filter_by(status="Blacklist").all()
+
+    # Patient Search
+    if patient_search:
+        like = f"%{patient_search}%"
+
+        active_pat = (
+            Patient.query
+            .filter(
+                Patient.status == "Active",
+                or_(
+                    Patient.name.ilike(like),
+                    cast(Patient.id, String).ilike(like),
+                    Patient.email.ilike(like),
+                    Patient.phone.ilike(like),
+                )
+            )
+            .all()
+        )
+
+        blacklist_pat = (
+            Patient.query
+            .filter(
+                Patient.status == "Blacklist",
+                or_(
+                    Patient.name.ilike(like),
+                    cast(Patient.id, String).ilike(like),
+                    Patient.email.ilike(like),
+                    Patient.phone.ilike(like),
+                )
+            )
+            .all()
+        )
+    else:
+        active_pat = Patient.query.filter_by(status="Active").all()
+        blacklist_pat = Patient.query.filter_by(status="Blacklist").all()
     booked_appoint = db.session.query(Appointment).filter_by(status="Booked").all()
     completed_appoint = db.session.query(Appointment).filter_by(status="Completed").all()
     canceled_appoint = db.session.query(Appointment).filter_by(status="Canceled").all()
     resheduled_appoint = db.session.query(Appointment).filter_by(status="Resheduled").all()
-    active_pat = db.session.query(Patient).filter_by(status="Active").all()
-    blacklist_pat = db.session.query(Patient).filter_by(status="Blacklist").all()
-    active_doc = db.session.query(Doctor).filter_by(status="Active").all()
-    blacklist_doc = db.session.query(Doctor).filter_by(status="Blacklist").all()
     total_doctors = Doctor.query.count()
     total_patients = Patient.query.count()
     total_appointments = Appointment.query.count()
@@ -463,7 +575,7 @@ def admin_dashboard():
                             booked_appoint = booked_appoint, completed_appoint = completed_appoint, canceled_appoint = canceled_appoint,
                             resheduled_appoint = resheduled_appoint, active_pat = active_pat, blacklist_pat = blacklist_pat,
                             active_doc = active_doc, blacklist_doc = blacklist_doc, total_doctors=total_doctors, total_patients=total_patients,
-                            total_appointments=total_appointments)
+                            total_appointments=total_appointments, doctor_search=doctor_search, patient_search=patient_search)
 
 @app.route("/admin/patient/<int:patient_id>/history")
 @login_required
@@ -626,13 +738,13 @@ def treatment():
         flash("Appointment id is missing", "danger")
         return redirect("/doctor/dashboard")
 
-    # For the appointment object
+    # For The Appointment
     appointment = Appointment.query.get(appoint_id)
     if not appointment:
         flash("Appointment not found", "danger")
         return redirect("/doctor/dashboard")
 
-    # Common form fields
+    # Common Form Fields
     visit_type = request.form.get("t_visit_type")
     test = request.form.get("treat_test")
     diagnosis = request.form.get("treat_diagnosis")
@@ -640,7 +752,7 @@ def treatment():
     notes = request.form.get("treat_notes")
     if task == "completed":
         new_treat = Treatment(
-            appoint_id=appointment.id,   # Link to appointment
+            appoint_id=appointment.id,
             visit_type=visit_type,
             test=test,
             diagnosis=diagnosis,
@@ -655,17 +767,27 @@ def treatment():
         flash(f"Appointment {appointment.id} is marked as Completed", "success")
         return redirect("/doctor/dashboard")
     elif task == "update":
-        treat = Treatment.query.filter_by(appoint_id=appointment.id).first()
+        if appointment.status != "Completed":
+            flash("You can only update treatments for Completed appointments.", "danger")
+            return redirect("/doctor/dashboard")
 
-        if not treat:
+        # Latest Treatment
+        latest_treat = (
+            Treatment.query
+            .filter_by(appoint_id=appointment.id)
+            .order_by(Treatment.visit_dt.desc())
+            .first()
+        )
+
+        if not latest_treat:
             flash("No existing treatment found to update", "danger")
             return redirect("/doctor/dashboard")
 
-        treat.visit_type = visit_type
-        treat.test = test
-        treat.diagnosis = diagnosis
-        treat.prescription = prescription
-        treat.notes = notes
+        latest_treat.visit_type = visit_type
+        latest_treat.test = test
+        latest_treat.diagnosis = diagnosis
+        latest_treat.prescription = prescription
+        latest_treat.notes = notes
 
         db.session.commit()
         flash(f"Treatment for Appointment {appointment.id} updated", "success")

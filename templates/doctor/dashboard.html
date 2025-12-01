@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
-            <a class="navbar-brand fs-5" href="#">HMS360</a>
+            <a class="navbar-brand fs-5" href="{{ url_for('doc_dashboard') }}">HMS360</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -22,13 +22,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto fs-5">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Search</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Stats</a>
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('doc_dashboard') }}">Dashboard</a>
                     </li>
                 </ul>
 
@@ -37,13 +31,20 @@
                         <i class="bi bi-person fs-3"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Logout</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
 
                     </ul>
                 </div>
             </div>
         </div>
     </nav>
+    {% set messages = get_flashed_messages() %}
+    {% for msg in messages %}
+    <div class="alert alert-warning alert-dismissible ms-5 me-5 mt-2 fade show" role="alert">
+        {{msg}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
     <h5>Welcome {{current_doctor.name}}</h5>
     <p>Department Name: {{current_doctor.department.name}}</p>
 
@@ -85,142 +86,94 @@
                                 <th scope="col">Patient</th>
                                 <th scope="col">Date</th>
                                 <th scope="col">Time</th>
-                                <th scope="col">Patient History</th>
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for da in day_appointments %}
-                                <tr>
-                                    <td>{{da.patient.name}}</td>
-                                    <td>{{da.date}}</td>
-                                    <td>{{da.time}}</td>
-                                    <td>
-                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#update-doc_appt-{{da.id}}">
-                                            Update
-                                        </button>
-                                        
-                                        <!-- Update -->
-                                        <div class="modal" id="update-doc_appt-{{da.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
-                                            aria-hidden="true">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Update {{da.patient.name}}'s History</h1>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <form action="/treatment?task=update&appoint_id={{da.id}}" method="POST">
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="visitType-{{da.id}}" name="t_visit_type">
-                                                                <label for="visitType-{{da.id}}">Visit Type</label>
-                                                            </div>
-                                                        
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="test-{{da.id}}" name="treat_test">
-                                                                <label for="test-{{da.id}}">Test</label>
-                                                            </div>
-                                                        
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="diagnosis-{{da.id}}" name="treat_diagnosis">
-                                                                <label for="diagnosis-{{da.id}}">Diagnosis</label>
-                                                            </div>
-                                                        
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="prescription-{{da.id}}" name="treat_prescription">
-                                                                <label for="prescription-{{da.id}}">Prescription</label>
-                                                            </div>
-                                                        
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="notes-{{da.id}}" name="treat_notes">
-                                                                <label for="notes-{{da.id}}">Notes</label>
-                                                            </div>
-                                                        
-                                                            <button type="submit" class="btn btn-primary">Save</button>
-                                                        </form>
-                                                    </div>
-                                        
+                        {% for da in day_appointments %}
+                            {% set last_treat = da.treatments[-1] if da.treatments else None %}
+                            <tr>
+                                <td>{{ da.patient.name }}</td>
+                                <td>{{ da.date }}</td>
+                                <td>{{ da.time }}</td>
+                                <td>
+                                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completed-doc_appt-{{da.id}}">
+                                        Completed
+                                    </button>
+                                
+                                    <!-- Completed -->
+                                    <div class="modal fade" id="completed-doc_appt-{{da.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                        aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Complete {{da.patient.name}}'s Appointment</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form action="/treatment?task=completed&appoint_id={{da.id}}" method="POST">
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="visitType-{{da.id}}" name="t_visit_type">
+                                                            <label for="visitType-{{da.id}}">Visit Type</label>
+                                                        </div>
+                                
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="test-{{da.id}}" name="treat_test">
+                                                            <label for="test-{{da.id}}">Test</label>
+                                                        </div>
+                                
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="diagnosis-{{da.id}}" name="treat_diagnosis">
+                                                            <label for="diagnosis-{{da.id}}">Diagnosis</label>
+                                                        </div>
+                                
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="prescription-{{da.id}}"
+                                                                name="treat_prescription">
+                                                            <label for="prescription-{{da.id}}">Prescription</label>
+                                                        </div>
+                                
+                                                        <div class="form-floating mb-3">
+                                                            <input type="text" class="form-control" id="notes-{{da.id}}" name="treat_notes">
+                                                            <label for="notes-{{da.id}}">Notes</label>
+                                                        </div>
+                                
+                                                        <button type="submit" class="btn btn-primary">Save</button>
+                                                    </form>
+                                                </div>
+                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#canceled-doc_appt-{{da.id}}">
+                                        Cancel
+                                    </button>
+                                
+                                    <!-- Canceled -->
+                                    <div class="modal fade" id="canceled-doc_appt-{{da.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                        aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h1 class="modal-title fs-5" id="exampleModalLabel">Cancel {{da.patient.name}}'s Appointment</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are You Sure You Want To Cancel {{da.patient.name}}'s Appointment?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form action="/treatment?task=canceled&appoint_id={{da.id}}" method="POST">
+                                                        <button type="submit" class="btn btn-primary">Yes</button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
                                                 </div>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completed-doc_appt-{{da.id}}">
-                                            Completed
-                                        </button>
-                                    
-                                        <!-- Completed -->
-                                        <div class="modal fade" id="completed-doc_appt-{{da.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
-                                            aria-hidden="true">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Complete {{da.patient.name}}'s Appointment</h1>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <form action="/treatment?task=completed&appoint_id={{da.id}}" method="POST">
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="visitType-{{da.id}}" name="t_visit_type">
-                                                                <label for="visitType-{{da.id}}">Visit Type</label>
-                                                            </div>
-                                                    
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="test-{{da.id}}" name="treat_test">
-                                                                <label for="test-{{da.id}}">Test</label>
-                                                            </div>
-                                                    
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="diagnosis-{{da.id}}" name="treat_diagnosis">
-                                                                <label for="diagnosis-{{da.id}}">Diagnosis</label>
-                                                            </div>
-                                                    
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="prescription-{{da.id}}" name="treat_prescription">
-                                                                <label for="prescription-{{da.id}}">Prescription</label>
-                                                            </div>
-                                                    
-                                                            <div class="form-floating mb-3">
-                                                                <input type="text" class="form-control" id="notes-{{da.id}}" name="treat_notes">
-                                                                <label for="notes-{{da.id}}">Notes</label>
-                                                            </div>
-                                                    
-                                                            <button type="submit" class="btn btn-primary">Save</button>
-                                                        </form>
-                                                    </div>
-                                                    
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#canceled-doc_appt-{{da.id}}">
-                                            Cancel
-                                        </button>
-
-                                        <!-- Canceled -->
-                                        <div class="modal fade" id="canceled-doc_appt-{{da.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
-                                            aria-hidden="true">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Cancel {{da.patient.name}}'s Appointment</h1>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        Are You Sure You Want To Cancel {{da.patient.name}}'s Appointment?
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <form action="/treatment?task=canceled&appoint_id={{da.id}}" method="POST">
-                                                            <button type="submit" class="btn btn-primary">Yes</button>
-                                                        </form>
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    
-                                    
-                                    </td>
+                                    </div>
+                                
+                                
+                                </td>
                                 </tr>
 
                             {% endfor %}
@@ -270,14 +223,72 @@
                                 <th scope="col">Patient</th>
                                 <th scope="col">Date</th>
                                 <th scope="col">Time</th>
+                                <th scope="col">Patient History</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for com in completed_appoint %}
+                                {% set last_treat = last_treatments.get(com.id) %}
                                 <tr>
                                     <td>{{com.patient.name}}</td>
                                     <td>{{com.date}}</td>
                                     <td>{{com.time}}</td>
+                                    <td>
+                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#update-doc_appt-{{ com.id }}">
+                                            Update
+                                        </button>
+                                    
+                                        <!-- Update -->
+                                        <div class="modal" id="update-doc_appt-{{ com.id }}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                                            aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h1 class="modal-title fs-5" id="exampleModalLabel">
+                                                            Update {{ com.patient.name }}'s History
+                                                        </h1>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <form action="/treatment?task=update&appoint_id={{ com.id }}" method="POST">
+                                                            <div class="form-floating mb-3">
+                                                                <input type="text" class="form-control" id="visitType-{{ com.id }}" name="t_visit_type"
+                                                                    value="{{ last_treat.visit_type if last_treat else '' }}">
+                                                                <label for="visitType-{{ com.id }}">Visit Type</label>
+                                                            </div>
+                                    
+                                                            <div class="form-floating mb-3">
+                                                                <input type="text" class="form-control" id="test-{{ com.id }}" name="treat_test"
+                                                                    value="{{ last_treat.test if last_treat else '' }}">
+                                                                <label for="test-{{ com.id }}">Test</label>
+                                                            </div>
+                                    
+                                                            <div class="form-floating mb-3">
+                                                                <input type="text" class="form-control" id="diagnosis-{{ com.id }}" name="treat_diagnosis"
+                                                                    value="{{ last_treat.diagnosis if last_treat else '' }}">
+                                                                <label for="diagnosis-{{ com.id }}">Diagnosis</label>
+                                                            </div>
+                                    
+                                                            <div class="form-floating mb-3">
+                                                                <input type="text" class="form-control" id="prescription-{{ com.id }}"
+                                                                    name="treat_prescription" value="{{ last_treat.prescription if last_treat else '' }}">
+                                                                <label for="prescription-{{ com.id }}">Prescription</label>
+                                                            </div>
+                                    
+                                                            <div class="form-floating mb-3">
+                                                                <input type="text" class="form-control" id="notes-{{ com.id }}" name="treat_notes"
+                                                                    value="{{ last_treat.notes if last_treat else '' }}">
+                                                                <label for="notes-{{ com.id }}">Notes</label>
+                                                            </div>
+                                    
+                                                            <button type="submit" class="btn btn-primary">Save</button>
+                                                        </form>
+                                                    </div>
+                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
                                 </tr>
                             {% endfor %}
     

@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
-            <a class="navbar-brand fs-5" href="#">HMS360</a>
+            <a class="navbar-brand fs-5" href="{{ url_for('admin_dashboard') }}">HMS360</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -22,13 +22,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto fs-5">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Search</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Stats</a>
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
                     </li>
                 </ul>
                 
@@ -37,7 +31,7 @@
                         <i class="bi bi-person fs-3"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Logout</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
                         
                     </ul>
                 </div>
@@ -179,8 +173,15 @@
 
     <!-- Doctors -->
     <div class="card mt-4 ms-5 me-5">
-        <div class="card-header">
-            <h5>Doctors - {{ total_doctors }}</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Doctors - {{ total_doctors }}</h5>
+        
+            <form class="d-flex" method="get" action="{{ url_for('admin_dashboard') }}">
+                <input class="form-control me-2" type="text" name="doctor_search" placeholder="Search doctor or department"
+                    value="{{ doctor_search or '' }}">
+                <button class="btn btn-outline-primary me-2" type="submit">Search</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+            </form>
         </div>
         <div class="card-body">
     
@@ -512,7 +513,14 @@
     <!-- Patients -->
     <div class="card mt-4 ms-5 me-5">
         <div class="card-header d-flex justify-content-between align-items-center mb-3">
-            <h5>Patients - {{ total_patients }}</h5>
+            <h5 class="mb-0">Patients - {{ total_patients }}</h5>
+        
+            <form class="d-flex" method="get" action="{{ url_for('admin_dashboard') }}">
+                <input class="form-control me-2" type="text" name="patient_search"
+                    placeholder="Search by name, ID, phone or email" value="{{ patient_search or '' }}">
+                <button class="btn btn-outline-primary me-2" type="submit">Search</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+            </form>
         </div>
         <div class="card-body">
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">

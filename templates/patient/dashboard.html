@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
-            <a class="navbar-brand fs-5" href="#">HMS360</a>
+            <a class="navbar-brand fs-5" href="{{ url_for('pat_dashboard') }}">HMS360</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -22,13 +22,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto fs-5">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Search</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Stats</a>
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('pat_dashboard') }}">Dashboard</a>
                     </li>
                 </ul>
 
@@ -37,13 +31,20 @@
                         <i class="bi bi-person fs-3"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Logout</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
 
                     </ul>
                 </div>
             </div>
         </div>
     </nav>
+    {% set messages = get_flashed_messages() %}
+    {% for msg in messages %}
+    <div class="alert alert-warning alert-dismissible ms-5 me-5 mt-2 fade show" role="alert">
+        {{msg}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
     <div class="container mt-3 d-flex justify-content-between align-items-center">
         <div>
             <h5 class="mb-1">Welcome {{current_patient.name}}</h5>
@@ -60,11 +61,18 @@
         </div>
     </div>
 
-
     <div class="card mt-4 ms-5 me-5">
-        <div class="card-header">
-            <h5>Departments</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Departments</h5>
+    
+            <form class="d-flex" method="get" action="{{ url_for('pat_dashboard') }}">
+                <input type="text" class="form-control me-2" name="search"
+                    placeholder="Search with doctor name or specialization" value="{{ search_term or '' }}">
+                <button class="btn btn-outline-primary me-2" type="submit">Search</button>
+                <a href="{{ url_for('pat_dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+            </form>
         </div>
+    
         <div class="card-body">
             <table class="table mb-0">
                 <thead>
