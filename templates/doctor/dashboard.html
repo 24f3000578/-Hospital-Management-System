@@ -46,7 +46,11 @@
     </div>
     {% endfor %}
     <h5>Welcome {{current_doctor.name}}</h5>
-    <p>Department Name: {{current_doctor.department.name}}</p>
+    {% if current_doctor.department %}
+    <p>Department Name: {{ current_doctor.department.name }}</p>
+    {% else %}
+    <p>Department: Not Assigned</p>
+    {% endif %}
 
     <!-- Appoinments -->
     <div class="card mt-4 ms-5 me-5">

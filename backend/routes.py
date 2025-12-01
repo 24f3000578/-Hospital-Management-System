@@ -299,6 +299,8 @@ def cancel_patient_appointment(appt_id):
 @app.route("/doctor/dashboard", methods=["GET", "POST"])
 @login_required
 def doc_dashboard():
+    if not isinstance(current_user._get_current_object(), Doctor):
+        return redirect(url_for("admin_dashboard"))
     doctor_id = current_user.id
 
     if not doctor_id:
@@ -598,11 +600,27 @@ def admin_patient_history(patient_id):
         back_url=url_for("admin_dashboard")
     )
 
-@app.route("/doctor/stats")
-def doc_stats():
-    if request.args.get("do_id"):
-        doc = db.session.query(Doctor).filter_by(id = request.args.get("do_id")).first()
-        return f"Welcome To {doc.name} Stats Page"
+@app.route("/admin/department/create", methods=["POST"])
+@login_required
+def create_department():
+    name = request.form.get("dept_name")
+    description = request.form.get("dept_description")
+
+    if not name or not description:
+        flash("Name and description are required", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    dept = Department(
+        name=name,
+        description=description,
+        doc_registered=0,
+    )
+    db.session.add(dept)
+    db.session.commit()
+
+    flash("Department created successfully", "success")
+    return redirect(url_for("admin_dashboard"))
+
 
 @app.route("/department" , methods=["POST"])
 def department():
@@ -732,6 +750,10 @@ def patient():
 @app.route("/treatment", methods=["POST"])
 def treatment():
     task = request.args.get("task")
+    if task not in ("completed", "update", "canceled"):
+        flash("Unknown or missing treatment action", "danger")
+        return redirect(url_for("doc_dashboard"))
+
     appoint_id = request.args.get("appoint_id", type=int)
 
     if not appoint_id:
